@@ -24,7 +24,7 @@ import org.apache.rocketmq.common.message.MessageExt;
 public class TransactionCheckListenerImpl implements TransactionCheckListener {
     private AtomicInteger transactionIndex = new AtomicInteger(0);
 
-    @Override
+/*    @Override
     public LocalTransactionState checkLocalTransactionState(MessageExt msg) {
         System.out.printf("server checking TrMsg " + msg.toString() + "%n");
 
@@ -38,5 +38,23 @@ public class TransactionCheckListenerImpl implements TransactionCheckListener {
         }
 
         return LocalTransactionState.UNKNOW;
-    }
+    }*/
+    @Override
+    public LocalTransactionState checkLocalTransactionState(MessageExt msg) {
+        System.out.println("++++++server checking TrMsg " + msg.toString());
+
+        int value = transactionIndex.getAndIncrement();
+        if ((value % 6) == 0) {
+        	System.out.println(">>>>>Checking Exeption: " + value);
+            throw new RuntimeException("Could not find db");
+        } else if ((value % 5) == 0) {
+        	System.out.println(">>>>>Checking Rollback: " + value);
+            return LocalTransactionState.ROLLBACK_MESSAGE;
+        } else if ((value % 4) == 0) {
+        	System.out.println(">>>>>Checking Commit: " + value);
+            return LocalTransactionState.COMMIT_MESSAGE;
+        }
+        System.out.println("######Checking Unkown: " + value);
+        return LocalTransactionState.UNKNOW;
+    }    
 }

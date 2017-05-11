@@ -63,6 +63,7 @@ public class BrokerStartup {
             }
 
             log.info(tip);
+            System.out.println(tip);
             return controller;
         } catch (Throwable e) {
             e.printStackTrace();
