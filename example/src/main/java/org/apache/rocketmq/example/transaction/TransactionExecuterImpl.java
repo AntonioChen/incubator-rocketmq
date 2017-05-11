@@ -24,7 +24,7 @@ import org.apache.rocketmq.common.message.Message;
 public class TransactionExecuterImpl implements LocalTransactionExecuter {
     private AtomicInteger transactionIndex = new AtomicInteger(1);
 
-/*    @Override
+    @Override
     public LocalTransactionState executeLocalTransactionBranch(final Message msg, final Object arg) {
         int value = transactionIndex.getAndIncrement();
 
@@ -37,22 +37,5 @@ public class TransactionExecuterImpl implements LocalTransactionExecuter {
         }
 
         return LocalTransactionState.UNKNOW;
-    }*/
-    @Override
-    public LocalTransactionState executeLocalTransactionBranch(final Message msg, final Object arg) {
-    	 System.out.println("------Executing Transaction: " + msg.toString());
-    	int value = transactionIndex.getAndIncrement();
-
-        if (value == 0) {
-            throw new RuntimeException("Could not find db");
-        } else if ((value % 5) == 0) {
-        	System.out.println("<<<<<<Executing Roll Back Message: " + value);
-            return LocalTransactionState.ROLLBACK_MESSAGE;
-        } else if ((value % 4) == 0) {
-        	System.out.println("<<<<<<Executing Commit Message: " + value);
-            return LocalTransactionState.COMMIT_MESSAGE;
-        }
-        System.out.println("******Executing Unkown Message: " + value);
-        return LocalTransactionState.UNKNOW;
-    }    
+    }
 }

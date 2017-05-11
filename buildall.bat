@@ -1,1 +1,0 @@
-mvn -Dmaven.test.skip=true clean install -Prelease-all assembly:assembly -U
