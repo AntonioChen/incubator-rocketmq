@@ -303,7 +303,9 @@ public class CommitLog {
             long tagsCode = 0;
             String keys = "";
             String uniqKey = null;
-
+            String producerGroup = null;
+            long tranStateTableOffset = -1;
+            
             // 17 properties
             short propertiesLength = byteBuffer.getShort();
             if (propertiesLength > 0) {
@@ -336,6 +338,21 @@ public class CommitLog {
                         }
                     }
                 }
+                
+                final int tranType = MessageSysFlag.getTransactionValue(sysFlag);
+                switch (tranType) {
+                    case MessageSysFlag.TRANSACTION_NOT_TYPE:
+                         break;
+                    case MessageSysFlag.TRANSACTION_PREPARED_TYPE:
+                        producerGroup =  propertiesMap.get(MessageConst.PROPERTY_PRODUCER_GROUP);
+                        tranStateTableOffset = queueOffset;
+                        break;
+                    case MessageSysFlag.TRANSACTION_COMMIT_TYPE:
+                    case MessageSysFlag.TRANSACTION_ROLLBACK_TYPE:
+                        producerGroup =  propertiesMap.get(MessageConst.PROPERTY_PRODUCER_GROUP);
+                        tranStateTableOffset = Long.valueOf(propertiesMap.get(MessageConst.PROPERTY_TRAN_STATE_OFFSET));
+                        break;
+                 }                
             }
 
             int readLength = calMsgLength(bodyLen, topicLen, propertiesLength);
@@ -361,10 +378,13 @@ public class CommitLog {
                 queueOffset, // 7
                 keys, // 8
                 uniqKey, //9
-                sysFlag, // 9
-                preparedTransactionOffset// 10
+                sysFlag, // 10
+                tranStateTableOffset,	//11
+                preparedTransactionOffset,// 12
+                producerGroup	// 13
             );
         } catch (Exception e) {
+        	log.error("[BUG]checkMessageAndReturnSize error, not expected here", e);
         }
 
         return new DispatchRequest(-1, false /* success */);
@@ -1135,11 +1155,19 @@ public class CommitLog {
                 // Prepared and Rollback message is not consumed, will not enter the
                 // consumer queuec
                 case MessageSysFlag.TRANSACTION_PREPARED_TYPE:
-                case MessageSysFlag.TRANSACTION_ROLLBACK_TYPE:
-                    queueOffset = 0L;
-                    break;
+                	queueOffset =
+                    CommitLog.this.defaultMessageStore.getTransactionStateService()
+                            .getTranStateTableOffset().get();
+                	break;
                 case MessageSysFlag.TRANSACTION_NOT_TYPE:
+                	break;
+                case MessageSysFlag.TRANSACTION_ROLLBACK_TYPE:
                 case MessageSysFlag.TRANSACTION_COMMIT_TYPE:
+                    //see [endMessageTransaction(MessageExt msgExt),Put the following code in this method may better for gc]
+                    MessageAccessor.putProperty(msgInner,MessageConst.PROPERTY_TRAN_STATE_OFFSET,String.valueOf(msgInner.getQueueOffset()));
+                    msgInner.setPropertiesString(MessageDecoder.messageProperties2String(msgInner.getProperties()));
+                    break;                	
+                	
                 default:
                     break;
             }
@@ -1242,6 +1270,8 @@ public class CommitLog {
 
             switch (tranType) {
                 case MessageSysFlag.TRANSACTION_PREPARED_TYPE:
+                	 CommitLog.this.defaultMessageStore.getTransactionStateService().getTranStateTableOffset()
+                     .incrementAndGet();
                 case MessageSysFlag.TRANSACTION_ROLLBACK_TYPE:
                     break;
                 case MessageSysFlag.TRANSACTION_NOT_TYPE:
