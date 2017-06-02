@@ -55,7 +55,7 @@ public class DefaultMessageStoreTest {
         messageStoreConfig.setMapedFileSizeConsumeQueue(1024 * 4);
         messageStoreConfig.setMaxHashSlotNum(100);
         messageStoreConfig.setMaxIndexNum(100 * 10);
-        MessageStore master = new DefaultMessageStore(messageStoreConfig, null, new MyMessageArrivingListener(), new BrokerConfig());
+        MessageStore master = new DefaultMessageStore(messageStoreConfig, null, new MyMessageArrivingListener(), null, new BrokerConfig());
 
         boolean load = master.load();
         assertTrue(load);
@@ -100,7 +100,7 @@ public class DefaultMessageStoreTest {
         MessageStoreConfig messageStoreConfig = new MessageStoreConfig();
         messageStoreConfig.setMapedFileSizeCommitLog(1024 * 8);
         messageStoreConfig.setFlushDiskType(FlushDiskType.SYNC_FLUSH);
-        MessageStore master = new DefaultMessageStore(messageStoreConfig, null, new MyMessageArrivingListener(), new BrokerConfig());
+        MessageStore master = new DefaultMessageStore(messageStoreConfig, null, new MyMessageArrivingListener(), null, new BrokerConfig());
         boolean load = master.load();
         assertTrue(load);
 

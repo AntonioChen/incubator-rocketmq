@@ -58,6 +58,7 @@ import org.apache.rocketmq.broker.processor.SendMessageProcessor;
 import org.apache.rocketmq.broker.slave.SlaveSynchronize;
 import org.apache.rocketmq.broker.subscription.SubscriptionGroupManager;
 import org.apache.rocketmq.broker.topic.TopicConfigManager;
+import org.apache.rocketmq.broker.transaction.DefaultTransactionCheckExecuter;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.Configuration;
 import org.apache.rocketmq.common.ThreadFactoryImpl;
@@ -98,6 +99,7 @@ public class BrokerController {
     private final ConsumerManager consumerManager;
     private final ProducerManager producerManager;
     private final ClientHousekeepingService clientHousekeepingService;
+    private final DefaultTransactionCheckExecuter defaultTransactionCheckExecuter;
     private final PullMessageProcessor pullMessageProcessor;
     private final PullRequestHoldService pullRequestHoldService;
     private final MessageArrivingListener messageArrivingListener;
@@ -151,6 +153,7 @@ public class BrokerController {
         this.consumerManager = new ConsumerManager(this.consumerIdsChangeListener);
         this.producerManager = new ProducerManager();
         this.clientHousekeepingService = new ClientHousekeepingService(this);
+        this.defaultTransactionCheckExecuter = new DefaultTransactionCheckExecuter(this);
         this.broker2Client = new Broker2Client(this);
         this.subscriptionGroupManager = new SubscriptionGroupManager(this);
         this.brokerOuterAPI = new BrokerOuterAPI(nettyClientConfig);
@@ -198,7 +201,7 @@ public class BrokerController {
         if (result) {
             try {
                 this.messageStore =
-                    new DefaultMessageStore(this.messageStoreConfig, this.brokerStatsManager, this.messageArrivingListener,
+                    new DefaultMessageStore(this.messageStoreConfig, this.brokerStatsManager, this.messageArrivingListener,this.defaultTransactionCheckExecuter,
                         this.brokerConfig);
                 this.brokerStats = new BrokerStats((DefaultMessageStore) this.messageStore);
                 //load plugin

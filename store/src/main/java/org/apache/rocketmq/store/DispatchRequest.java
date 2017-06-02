@@ -29,7 +29,9 @@ public class DispatchRequest {
     private final String uniqKey;
 
     private final int sysFlag;
+    private final long tranStateTableOffset;
     private final long preparedTransactionOffset;
+    private final String producerGroup;
 
     public DispatchRequest(
         final String topic,
@@ -42,7 +44,9 @@ public class DispatchRequest {
         final String keys,
         final String uniqKey,
         final int sysFlag,
-        final long preparedTransactionOffset
+        final long tranStateTableOffset,
+        final long preparedTransactionOffset,
+        final String producerGroup        
     ) {
         this.topic = topic;
         this.queueId = queueId;
@@ -55,7 +59,9 @@ public class DispatchRequest {
         this.uniqKey = uniqKey;
 
         this.sysFlag = sysFlag;
+        this.tranStateTableOffset = tranStateTableOffset;
         this.preparedTransactionOffset = preparedTransactionOffset;
+        this.producerGroup = producerGroup;
         this.success = true;
     }
 
@@ -79,7 +85,9 @@ public class DispatchRequest {
         //9
         this.uniqKey = null;
         this.sysFlag = 0;
+        this.tranStateTableOffset = 0;
         this.preparedTransactionOffset = 0;
+        this.producerGroup = "";
         this.success = false;
     }
 
@@ -103,7 +111,9 @@ public class DispatchRequest {
         // 9
         this.uniqKey = null;
         this.sysFlag = 0;
+        this.tranStateTableOffset = 0;
         this.preparedTransactionOffset = 0;
+        this.producerGroup = "";
         this.success = success;
     }
 
@@ -143,10 +153,18 @@ public class DispatchRequest {
         return sysFlag;
     }
 
+    public long getTranStateTableOffset() {
+        return tranStateTableOffset;
+    }
+    
     public long getPreparedTransactionOffset() {
         return preparedTransactionOffset;
     }
 
+    public String getProducerGroup() {
+        return producerGroup;
+    }
+    
     public boolean isSuccess() {
         return success;
     }
