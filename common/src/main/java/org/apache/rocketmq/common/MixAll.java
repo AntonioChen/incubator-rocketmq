@@ -16,35 +16,19 @@
  */
 package org.apache.rocketmq.common;
 
-import java.io.ByteArrayInputStream;
-import java.io.File;
-import java.io.FileReader;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.UnsupportedEncodingException;
+import org.apache.rocketmq.common.annotation.ImportantField;
+import org.apache.rocketmq.common.help.FAQUrl;
+import org.slf4j.Logger;
+
+import java.io.*;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
-import java.net.InetAddress;
-import java.net.InetSocketAddress;
-import java.net.NetworkInterface;
-import java.net.SocketException;
-import java.net.URL;
-import java.net.URLConnection;
+import java.net.*;
 import java.nio.ByteBuffer;
-import java.util.ArrayList;
-import java.util.Enumeration;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Properties;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicLong;
-import org.apache.rocketmq.common.annotation.ImportantField;
-import org.apache.rocketmq.common.help.FAQUrl;
-import org.slf4j.Logger;
 
 public class MixAll {
     public static final String ROCKETMQ_HOME_ENV = "ROCKETMQ_HOME";
@@ -64,6 +48,9 @@ public class MixAll {
     public static final String TOOLS_CONSUMER_GROUP = "TOOLS_CONSUMER";
     public static final String FILTERSRV_CONSUMER_GROUP = "FILTERSRV_CONSUMER";
     public static final String MONITOR_CONSUMER_GROUP = "__MONITOR_CONSUMER";
+    /**
+     * Client 内部 Producer 分组
+     */
     public static final String CLIENT_INNER_PRODUCER_GROUP = "CLIENT_INNER_PRODUCER";
     public static final String SELF_TEST_PRODUCER_GROUP = "SELF_TEST_P_GROUP";
     public static final String SELF_TEST_CONSUMER_GROUP = "SELF_TEST_C_GROUP";
@@ -83,6 +70,7 @@ public class MixAll {
 
     public static final String RETRY_GROUP_TOPIC_PREFIX = "%RETRY%";
 
+    // TODO 待读
     public static final String DLQ_GROUP_TOPIC_PREFIX = "%DLQ%";
     public static final String SYSTEM_TOPIC_PREFIX = "rmq_sys_";
     public static final String UNIQUE_MSG_QUERY_FLAG = "_UNIQUE_KEY_QUERY";
@@ -138,11 +126,22 @@ public class MixAll {
         return Math.abs(value);
     }
 
+    /**
+     * 将内容写到文件
+     * 安全写
+     * 1. 写到.tmp文件
+     * 2. 备份准备写入文件到.bak文件
+     * 3. 删除原文件，将.tmp修改成文件
+     *
+     * @param str 内容
+     * @param fileName 文件名
+     * @throws IOException 当IO发生异常时
+     */
     public static void string2File(final String str, final String fileName) throws IOException {
-
+        // 写到 tmp文件
         String tmpFile = fileName + ".tmp";
         string2FileNotSafe(str, tmpFile);
-
+        //
         String bakFile = fileName + ".bak";
         String prevContent = file2String(fileName);
         if (prevContent != null) {
@@ -156,15 +155,23 @@ public class MixAll {
         file.renameTo(new File(fileName));
     }
 
-
+    /**
+     * 将内容写到文件
+     * 非安全写
+     *
+     * @param str 内容
+     * @param fileName 文件内容
+     * @throws IOException 当IO发生异常时
+     */
     public static void string2FileNotSafe(final String str, final String fileName) throws IOException {
         File file = new File(fileName);
+        // 创建上级目录
         File fileParent = file.getParentFile();
         if (fileParent != null) {
             fileParent.mkdirs();
         }
+        // 写内容
         FileWriter fileWriter = null;
-
         try {
             fileWriter = new FileWriter(file);
             fileWriter.write(str);

@@ -30,7 +30,15 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+// TODO 消息相关
+/**
+ * 消息解析器
+ */
 public class MessageDecoder {
+
+    /**
+     * 消息编号长度
+     */
     public final static int MSG_ID_LENGTH = 8 + 8;
 
     public final static Charset CHARSET_UTF8 = Charset.forName("UTF-8");
@@ -42,6 +50,14 @@ public class MessageDecoder {
     public static final char NAME_VALUE_SEPARATOR = 1;
     public static final char PROPERTY_SEPARATOR = 2;
 
+    /**
+     * 创建Message编号
+     *
+     * @param input input字节缓冲流
+     * @param addr socket地址字节缓冲流
+     * @param offset 地址
+     * @return Message编号
+     */
     public static String createMessageId(final ByteBuffer input, final ByteBuffer addr, final long offset) {
         input.flip();
         input.limit(MessageDecoder.MSG_ID_LENGTH);

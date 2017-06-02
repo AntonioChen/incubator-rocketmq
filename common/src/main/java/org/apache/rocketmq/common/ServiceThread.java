@@ -16,19 +16,33 @@
  */
 package org.apache.rocketmq.common;
 
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+
+/**
+ * 服务线程
+ */
 public abstract class ServiceThread implements Runnable {
     private static final Logger STLOG = LoggerFactory.getLogger(LoggerName.COMMON_LOGGER_NAME);
     private static final long JOIN_TIME = 90 * 1000;
 
+    /**
+     * 线程
+     */
     protected final Thread thread;
+    /**
+     * 等待标识
+     */
     protected final CountDownLatch2 waitPoint = new CountDownLatch2(1);
+    // TODO 疑问：这个变量的用途没看懂？
     protected volatile AtomicBoolean hasNotified = new AtomicBoolean(false);
+    /**
+     * 是否停止
+     */
     protected volatile boolean stopped = false;
 
     public ServiceThread() {
@@ -96,12 +110,22 @@ public abstract class ServiceThread implements Runnable {
         STLOG.info("makestop thread " + this.getServiceName());
     }
 
+    /**
+     * 唤醒
+     */
+    @SuppressWarnings("SpellCheckingInspection")
     public void wakeup() {
         if (hasNotified.compareAndSet(false, true)) {
             waitPoint.countDown(); // notify
         }
     }
 
+    /**
+     * 等待 interval毫秒 运行
+     * 如果 {@link #hasNotified} 为 true 时，等待直接结束。
+     *
+     * @param interval 等待市场
+     */
     protected void waitForRunning(long interval) {
         if (hasNotified.compareAndSet(true, false)) {
             this.onWaitEnd();
