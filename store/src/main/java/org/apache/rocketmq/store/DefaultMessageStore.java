@@ -53,6 +53,8 @@ import org.apache.rocketmq.store.index.IndexService;
 import org.apache.rocketmq.store.index.QueryOffsetResult;
 import org.apache.rocketmq.store.schedule.ScheduleMessageService;
 import org.apache.rocketmq.store.stats.BrokerStatsManager;
+import org.apache.rocketmq.store.transaction.TransactionCheckExecuter;
+import org.apache.rocketmq.store.transaction.TransactionStateService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -83,6 +85,8 @@ public class DefaultMessageStore implements MessageStore {
 
     private final ScheduleMessageService scheduleMessageService;
 
+    private final TransactionStateService transactionStateService;
+    
     private final StoreStatsService storeStatsService;
 
     private final TransientStorePool transientStorePool;
@@ -96,6 +100,8 @@ public class DefaultMessageStore implements MessageStore {
     private final MessageArrivingListener messageArrivingListener;
     private final BrokerConfig brokerConfig;
 
+    private final TransactionCheckExecuter transactionCheckExecuter;
+    
     private volatile boolean shutdown = true;
 
     private StoreCheckpoint storeCheckpoint;
@@ -105,8 +111,9 @@ public class DefaultMessageStore implements MessageStore {
     private final LinkedList<CommitLogDispatcher> dispatcherList;
 
     public DefaultMessageStore(final MessageStoreConfig messageStoreConfig, final BrokerStatsManager brokerStatsManager,
-        final MessageArrivingListener messageArrivingListener, final BrokerConfig brokerConfig) throws IOException {
+        final MessageArrivingListener messageArrivingListener, final TransactionCheckExecuter transactionCheckExecuter, final BrokerConfig brokerConfig) throws IOException {
         this.messageArrivingListener = messageArrivingListener;
+        this.transactionCheckExecuter = transactionCheckExecuter;
         this.brokerConfig = brokerConfig;
         this.messageStoreConfig = messageStoreConfig;
         this.brokerStatsManager = brokerStatsManager;
@@ -120,7 +127,7 @@ public class DefaultMessageStore implements MessageStore {
         this.storeStatsService = new StoreStatsService();
         this.indexService = new IndexService(this);
         this.haService = new HAService(this);
-
+        this.transactionStateService = new TransactionStateService(this);
         this.reputMessageService = new ReputMessageService();
 
         this.scheduleMessageService = new ScheduleMessageService(this);
@@ -138,6 +145,11 @@ public class DefaultMessageStore implements MessageStore {
         this.dispatcherList = new LinkedList<>();
         this.dispatcherList.addLast(new CommitLogDispatcherBuildConsumeQueue());
         this.dispatcherList.addLast(new CommitLogDispatcherBuildIndex());
+    }
+    
+    public DefaultMessageStore(final MessageStoreConfig messageStoreConfig, final BrokerStatsManager brokerStatsManager,
+            final MessageArrivingListener messageArrivingListener, final BrokerConfig brokerConfig) throws IOException {
+    	this(messageStoreConfig, brokerStatsManager, messageArrivingListener, null, brokerConfig);
     }
 
     public void truncateDirtyLogicFiles(long phyOffset) {
@@ -170,6 +182,7 @@ public class DefaultMessageStore implements MessageStore {
             // load Consume Queue
             result = result && this.loadConsumeQueue();
 
+            result = result && this.transactionStateService.load();            
             if (result) {
                 this.storeCheckpoint =
                     new StoreCheckpoint(StorePathConfigHelper.getStoreCheckpoint(this.messageStoreConfig.getStorePathRootDir()));
@@ -1270,6 +1283,8 @@ public class DefaultMessageStore implements MessageStore {
         }
 
         this.recoverTopicQueueTable();
+        
+        this.getTransactionStateService().recoverStateTable(lastExitOK);
     }
 
     public MessageStoreConfig getMessageStoreConfig() {
@@ -1415,6 +1430,78 @@ public class DefaultMessageStore implements MessageStore {
         public void dispatch(DispatchRequest request) {
             if (DefaultMessageStore.this.messageStoreConfig.isMessageIndexEnable()) {
                 DefaultMessageStore.this.indexService.buildIndex(request);
+            }
+        }
+    }
+    
+    class CommitLogDispatcherTransaction implements CommitLogDispatcher {
+
+        @Override
+        public void dispatch(DispatchRequest req) {
+        	int tranType = MessageSysFlag.getTransactionValue(req.getSysFlag());
+            if (req.getProducerGroup() != null) {
+                switch (tranType) {
+                    case MessageSysFlag.TRANSACTION_NOT_TYPE:
+                        break;
+                    case MessageSysFlag.TRANSACTION_PREPARED_TYPE:
+                         DefaultMessageStore.this.getTransactionStateService().appendPreparedTransaction(//
+                                req.getCommitLogOffset(),//
+                                req.getMsgSize(),//
+                                (int) (req.getStoreTimestamp() / 1000),//
+                                req.getProducerGroup().hashCode());
+                        break;
+                    case MessageSysFlag.TRANSACTION_COMMIT_TYPE:
+                    case MessageSysFlag.TRANSACTION_ROLLBACK_TYPE:
+                        DefaultMessageStore.this.getTransactionStateService().updateTransactionState(//
+                                req.getTranStateTableOffset(),//
+                                req.getPreparedTransactionOffset(),//
+                                req.getProducerGroup().hashCode(),//
+                                tranType//
+                        );
+                        break;
+                }
+            }
+
+            switch (tranType) {
+                case MessageSysFlag.TRANSACTION_NOT_TYPE:
+                    break;
+                case MessageSysFlag.TRANSACTION_PREPARED_TYPE:{
+                	DispatchRequest nextReq = new DispatchRequest(req.getTopic(), req.getQueueId(), req.getCommitLogOffset(), 
+                			req.getMsgSize(), TransactionStateService.PreparedMessageTagsCode, 
+                			req.getStoreTimestamp(), 0L, req.getKeys(), 
+                			req.getUniqKey(), req.getSysFlag(), req.getTranStateTableOffset(), req.getPreparedTransactionOffset(), 
+                			req.getProducerGroup(), req.getPropertiesMap());
+					DefaultMessageStore.this.getTransactionStateService().getTranRedoLog()
+							.putMessagePositionInfoWrapper(nextReq);
+//                     DefaultMessageStore.this.getTransactionStateService().getTranRedoLog()
+//                            .putMessagePositionInfoWrapper(//
+//                                    req.getCommitLogOffset(),//
+//                                    req.getMsgSize(),//
+//                                    TransactionStateService.PreparedMessageTagsCode,//
+//                                    req.getStoreTimestamp(),//
+//                                    0L//
+//                            );
+                    break;
+                }
+                case MessageSysFlag.TRANSACTION_COMMIT_TYPE:
+                case MessageSysFlag.TRANSACTION_ROLLBACK_TYPE:{
+                	DispatchRequest nextReq = new DispatchRequest(req.getTopic(), req.getQueueId(), req.getCommitLogOffset(), 
+                			req.getMsgSize(), req.getPreparedTransactionOffset(), 
+                			req.getStoreTimestamp(), 0L, req.getKeys(), 
+                			req.getUniqKey(), req.getSysFlag(), req.getTranStateTableOffset(), req.getPreparedTransactionOffset(), 
+                			req.getProducerGroup(), req.getPropertiesMap());
+					DefaultMessageStore.this.getTransactionStateService().getTranRedoLog()
+							.putMessagePositionInfoWrapper(nextReq);
+//                     DefaultMessageStore.this.getTransactionStateService().getTranRedoLog()
+//                            .putMessagePositionInfoWrapper(//
+//                                    req.getCommitLogOffset(),//
+//                                    req.getMsgSize(),//
+//                                    req.getPreparedTransactionOffset(),//
+//                                    req.getStoreTimestamp(),//
+//                                    0L//
+//                            );
+                    break;
+                }
             }
         }
     }
@@ -1815,4 +1902,12 @@ public class DefaultMessageStore implements MessageStore {
         }
 
     }
+    
+    public TransactionStateService getTransactionStateService() {
+        return transactionStateService;
+    }
+
+    public TransactionCheckExecuter getTransactionCheckExecuter() {
+        return transactionCheckExecuter;
+    }    
 }

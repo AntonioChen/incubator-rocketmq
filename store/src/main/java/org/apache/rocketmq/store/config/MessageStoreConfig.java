@@ -19,6 +19,7 @@ package org.apache.rocketmq.store.config;
 import java.io.File;
 import org.apache.rocketmq.common.annotation.ImportantField;
 import org.apache.rocketmq.store.ConsumeQueue;
+import org.apache.rocketmq.store.transaction.TransactionStateService;
 
 public class MessageStoreConfig {
     //The root directory in which the log data is kept
@@ -29,7 +30,6 @@ public class MessageStoreConfig {
     @ImportantField
     private String storePathCommitLog = System.getProperty("user.home") + File.separator + "store"
         + File.separator + "commitlog";
-
     // CommitLog file size,default is 1G
     private int mapedFileSizeCommitLog = 1024 * 1024 * 1024;
     // ConsumeQueue file size,default is 30W
@@ -128,6 +128,17 @@ public class MessageStoreConfig {
     private int syncFlushTimeout = 1000 * 5;
     private String messageDelayLevel = "1s 5s 10s 30s 1m 2m 3m 4m 5m 6m 7m 8m 9m 10m 20m 30m 1h 2h";
     private long flushDelayOffsetInterval = 1000 * 10;
+    
+    private String tranStateTableStorePath = System.getProperty("user.home") + File.separator + "store"
+            + File.separator + "transaction" + File.separator + "statetable";
+    private int tranStateTableMapedFileSize = 2000000 * TransactionStateService.TSStoreUnitSize;
+    private String tranRedoLogStorePath = System.getProperty("user.home") + File.separator + "store"
+            + File.separator + "transaction" + File.separator + "redolog";
+    private int tranRedoLogMapedFileSize = 2000000 * ConsumeQueue.CQ_STORE_UNIT_SIZE;
+    private long checkTransactionMessageAtleastInterval = 1000 * 60;
+    private long checkTransactionMessageTimerInterval = 1000 * 60;
+    private boolean checkTransactionMessageEnable = true;
+    
     @ImportantField
     private boolean cleanFileForciblyEnable = true;
     private boolean warmMapedFileEnable = false;
@@ -665,5 +676,62 @@ public class MessageStoreConfig {
     public void setCommitCommitLogThoroughInterval(final int commitCommitLogThoroughInterval) {
         this.commitCommitLogThoroughInterval = commitCommitLogThoroughInterval;
     }
+    public String getTranStateTableStorePath() {
+        return tranStateTableStorePath;
+    }
 
+    public void setTranStateTableStorePath(String tranStateTableStorePath) {
+        this.tranStateTableStorePath = tranStateTableStorePath;
+    }
+
+    public String getTranRedoLogStorePath() {
+        return tranRedoLogStorePath;
+    }
+
+    public void setTranRedoLogStorePath(String tranRedoLogStorePath) {
+        this.tranRedoLogStorePath = tranRedoLogStorePath;
+    }
+
+    public int getTranStateTableMapedFileSize() {
+        return tranStateTableMapedFileSize;
+    }
+
+    public void setTranStateTableMapedFileSize(int tranStateTableMapedFileSize) {
+        this.tranStateTableMapedFileSize = tranStateTableMapedFileSize;
+    }
+
+    public int getTranRedoLogMapedFileSize() {
+        return tranRedoLogMapedFileSize;
+    }
+
+    public void setTranRedoLogMapedFileSize(int tranRedoLogMapedFileSize) {
+        this.tranRedoLogMapedFileSize = tranRedoLogMapedFileSize;
+    }
+
+    public long getCheckTransactionMessageAtleastInterval() {
+        return checkTransactionMessageAtleastInterval;
+    }
+
+    public void setCheckTransactionMessageAtleastInterval(
+            long checkTransactionMessageAtleastInterval) {
+        this.checkTransactionMessageAtleastInterval = checkTransactionMessageAtleastInterval;
+    }
+
+    public long getCheckTransactionMessageTimerInterval() {
+        return checkTransactionMessageTimerInterval;
+    }
+
+    public void setCheckTransactionMessageTimerInterval(
+            long checkTransactionMessageTimerInterval) {
+        this.checkTransactionMessageTimerInterval = checkTransactionMessageTimerInterval;
+    }
+
+    public boolean isCheckTransactionMessageEnable() {
+        return checkTransactionMessageEnable;
+    }
+
+    public void setCheckTransactionMessageEnable(
+            boolean checkTransactionMessageEnable) {
+        this.checkTransactionMessageEnable = checkTransactionMessageEnable;
+    }    
 }
