@@ -27,16 +27,16 @@ public class TransactionCheckListenerImpl implements TransactionCheckListener {
     @Override
     public LocalTransactionState checkLocalTransactionState(MessageExt msg) {
         System.out.printf("server checking TrMsg " + msg.toString() + "%n");
+        return LocalTransactionState.COMMIT_MESSAGE;
+//        int value = transactionIndex.getAndIncrement();
+//        if ((value % 6) == 0) {
+//            throw new RuntimeException("Could not find db");
+//        } else if ((value % 5) == 0) {
+//            return LocalTransactionState.ROLLBACK_MESSAGE;
+//        } else if ((value % 4) == 0) {
+//            return LocalTransactionState.COMMIT_MESSAGE;
+//        }
 
-        int value = transactionIndex.getAndIncrement();
-        if ((value % 6) == 0) {
-            throw new RuntimeException("Could not find db");
-        } else if ((value % 5) == 0) {
-            return LocalTransactionState.ROLLBACK_MESSAGE;
-        } else if ((value % 4) == 0) {
-            return LocalTransactionState.COMMIT_MESSAGE;
-        }
-
-        return LocalTransactionState.UNKNOW;
+//        return LocalTransactionState.UNKNOW;
     }
 }

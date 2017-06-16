@@ -1,0 +1,12 @@
+e:
+cd \workspace\RocketMQ\incubator-rocketmq\distribution\target\apache-rocketmq\bin
+mqnamesrv.cmd -c e:/workspace/RocketMQ/incubator-rocketmq/distribution/conf/namesrv.conf
+
+e:
+cd \workspace\RocketMQ\incubator-rocketmq\distribution\target\apache-rocketmq\bin
+mqbroker.cmd -c e:/workspace/RocketMQ/incubator-rocketmq/distribution/conf/broker.conf
+
+
+e:
+cd \workspace\RocketMQ\incubator-rocketmq-externals\rocketmq-console\target\
+java -jar rocketmq-console-ng-1.0.0.jar -Drocketmq.namesrv.addr=127.0.0.1:9876

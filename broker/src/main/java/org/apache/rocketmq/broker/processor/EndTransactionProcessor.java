@@ -51,6 +51,8 @@ public class EndTransactionProcessor implements NettyRequestProcessor {
         final EndTransactionRequestHeader requestHeader =
             (EndTransactionRequestHeader) request.decodeCommandCustomHeader(EndTransactionRequestHeader.class);
 
+        try {
+			
         if (requestHeader.getFromTransactionCheck()) {
             switch (requestHeader.getCommitOrRollback()) {
                 case MessageSysFlag.TRANSACTION_NOT_TYPE: {
@@ -194,6 +196,10 @@ public class EndTransactionProcessor implements NettyRequestProcessor {
         }
 
         return response;
+
+		} finally {
+            LOGGER.debug(response.toString());
+		}
     }
 
     @Override

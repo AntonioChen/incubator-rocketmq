@@ -417,16 +417,16 @@ public class ConsumeQueue {
         this.defaultMessageStore.getRunningFlags().makeLogicsQueueError();
     }
 
-    private boolean putMessagePositionInfo(final long offset, final int size, final long tagsCode,
+    private boolean putMessagePositionInfo(final long clOffset, final int size, final long tagsCode,
         final long cqOffset) {
 
-        if (offset <= this.maxPhysicOffset) {
+        if (clOffset <= this.maxPhysicOffset) {
             return true;
         }
 
         this.byteBufferIndex.flip();
         this.byteBufferIndex.limit(CQ_STORE_UNIT_SIZE);
-        this.byteBufferIndex.putLong(offset);
+        this.byteBufferIndex.putLong(clOffset);
         this.byteBufferIndex.putInt(size);
         this.byteBufferIndex.putLong(tagsCode);
 
@@ -457,7 +457,7 @@ public class ConsumeQueue {
                     );
                 }
             }
-            this.maxPhysicOffset = offset;
+            this.maxPhysicOffset = clOffset;
             return mappedFile.appendMessage(this.byteBufferIndex.array());
         }
         return false;

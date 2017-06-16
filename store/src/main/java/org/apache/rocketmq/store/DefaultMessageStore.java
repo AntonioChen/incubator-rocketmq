@@ -141,7 +141,6 @@ public class DefaultMessageStore implements MessageStore {
         this.allocateMappedFileService.start();
 
         this.indexService.start();
-        this.transactionStateService.start();
 
         this.dispatcherList = new LinkedList<>();
         this.dispatcherList.addLast(new CommitLogDispatcherBuildConsumeQueue());
@@ -225,8 +224,8 @@ public class DefaultMessageStore implements MessageStore {
             this.reputMessageService.setReputFromOffset(this.commitLog.getMaxOffset());
         }
         this.reputMessageService.start();
-
         this.haService.start();
+        this.transactionStateService.start();
 
         this.createTempFile();
         this.addScheduleTask();
@@ -289,7 +288,7 @@ public class DefaultMessageStore implements MessageStore {
             }
         }
     }
-
+    
     public PutMessageResult putMessage(MessageExtBrokerInner msg) {
         if (this.shutdown) {
             log.warn("message store has shutdown, so putMessage is forbidden");

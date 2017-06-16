@@ -19,15 +19,19 @@ package org.apache.rocketmq.broker.client;
 import io.netty.channel.Channel;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Random;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.stream.Collectors;
+
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.remoting.common.RemotingHelper;
 import org.apache.rocketmq.remoting.common.RemotingUtil;
@@ -41,9 +45,6 @@ public class ProducerManager {
     private final Lock groupChannelLock = new ReentrantLock();
     private final HashMap<String /* group name */, HashMap<Channel, ClientChannelInfo>> groupChannelTable =
         new HashMap<String, HashMap<Channel, ClientChannelInfo>>();
-    private final Lock hashcodeChannelLock = new ReentrantLock();
-    private final HashMap<Integer /* group hash code */, List<ClientChannelInfo>> hashcodeChannelTable =
-            new HashMap<Integer, List<ClientChannelInfo>>();
     private final Random random = new Random(System.currentTimeMillis());
     
     public ProducerManager() {
@@ -161,37 +162,6 @@ public class ProducerManager {
             } else {
                 log.warn("ProducerManager registerProducer lock timeout");
             }
-            
-            boolean bClientChannelInfoFound = false;
-            
-            if (this.hashcodeChannelLock.tryLock(LOCK_TIMEOUT_MILLIS, TimeUnit.MILLISECONDS)) {
-                try {
-                    Integer groupHashCode = group.hashCode();
-                    List<ClientChannelInfo> channelList = this.hashcodeChannelTable.get(groupHashCode);
-                    if (null == channelList) {
-                        channelList = new ArrayList<ClientChannelInfo>();
-                        this.hashcodeChannelTable.put(groupHashCode, channelList);
-                    }
-
-                    bClientChannelInfoFound = channelList.contains(clientChannelInfo);
-                    if (!bClientChannelInfoFound) {
-                        channelList.add(clientChannelInfo);
-                        log.info("new producer connected, group: {} group hashcode: {} channel: {}", group,
-                                groupHashCode,  clientChannelInfo.toString());
-                    }
-                }
-                finally {
-                    this.hashcodeChannelLock.unlock();
-                }
-
-                if (bClientChannelInfoFound) {
-                    clientChannelInfoFound.setLastUpdateTimestamp(System.currentTimeMillis());
-                }
-            }
-            else {
-                log.warn("ProducerManager registerProducer hashcodeChannelLock timeout");
-            }
-            
         } catch (InterruptedException e) {
             log.error("", e);
         }
@@ -221,62 +191,27 @@ public class ProducerManager {
                 log.warn("ProducerManager unregisterProducer lock timeout");
             }
 
-            if (this.hashcodeChannelLock.tryLock(LOCK_TIMEOUT_MILLIS, TimeUnit.MILLISECONDS)) {
-                try {
-                    Integer groupHashCode = group.hashCode();
-                    List<ClientChannelInfo> channelList = this.hashcodeChannelTable.get(groupHashCode);
-                    if (null != channelList && !channelList.isEmpty()) {
-                        boolean bRemove = channelList.remove(clientChannelInfo.getChannel());
-                        if (bRemove) {
-                            log.info("unregister a producer[{}] from hashcodeChannelTable {}", clientChannelInfo.toString(),
-                                    group);
-                        }
-
-                        if (channelList.isEmpty()) {
-                            this.hashcodeChannelTable.remove(groupHashCode);
-                            log.info("unregister a producer group[{}] from hashcodeChannelTable", group);
-                        }
-                    }
-                }
-                finally {
-                    this.hashcodeChannelLock.unlock();
-                }
-            }
-            else {
-                log.warn("ProducerManager unregisterProducer hashcodeChannelLock timeout");
-            }
-            
         } catch (InterruptedException e) {
             log.error("", e);
         }
     }
     
     public ClientChannelInfo pickProducerChannelRandomly(final int producerGroupHashCode) {
-        try {
-            if (this.hashcodeChannelLock.tryLock(LOCK_TIMEOUT_MILLIS, TimeUnit.MILLISECONDS)) {
-                try {
-                    List<ClientChannelInfo> channelInfoList =
-                            this.hashcodeChannelTable.get(producerGroupHashCode);
-                    if (channelInfoList != null && !channelInfoList.isEmpty()) {
-                        int index = this.generateRandmonNum() % channelInfoList.size();
-                        ClientChannelInfo info = channelInfoList.get(index);
-                        return info;
-                    }
-                }
-                finally {
-                    this.hashcodeChannelLock.unlock();
-                }
-            }
-            else {
-                log.warn("ProducerManager pickProducerChannelRandomly lock timeout");
-            }
-        }
-        catch (InterruptedException e) {
-            log.error("", e);
-        }
+        List<ClientChannelInfo> channelInfoList = getChannelInfos(producerGroupHashCode);
+		if (channelInfoList != null && !channelInfoList.isEmpty()) {
+			int index = this.generateRandmonNum() % channelInfoList.size();
+			ClientChannelInfo info = channelInfoList.get(index);
+			return info;
+		}
 
         return null;
     }
+
+	private List<ClientChannelInfo> getChannelInfos(final int producerGroupHashCode) {
+		Set<Entry<String, HashMap<Channel, ClientChannelInfo>>> entrySet = groupChannelTable.entrySet();
+		return entrySet.stream().filter(entry -> entry.getKey().hashCode() == producerGroupHashCode)
+		.flatMap(entry -> entry.getValue().values().stream()).collect(Collectors.toList());
+	}
 
     private int generateRandmonNum() {
         int value = this.random.nextInt();

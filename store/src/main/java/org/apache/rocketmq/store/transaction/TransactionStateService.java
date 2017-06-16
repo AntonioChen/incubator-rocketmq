@@ -255,13 +255,18 @@ public class TransactionStateService {
                         int sizeMsg = bufferConsumeQueue.getByteBuffer().getInt();
                         long tagsCode = bufferConsumeQueue.getByteBuffer().getLong();
 
+                        //跳过空白的CQ记录
+                        if (offsetMsg == 0L && sizeMsg == 0L && tagsCode == 0L) {
+                        	continue;
+                        }
+                        
                         // Prepared
                         if (TransactionStateService.PreparedMessageTagsCode == tagsCode) {
                             preparedItemSet.add(offsetMsg);
                         }
                         // Commit/Rollback
                         else {
-                            preparedItemSet.remove(tagsCode);
+                            preparedItemSet.remove(offsetMsg);
                         }
                     }
 

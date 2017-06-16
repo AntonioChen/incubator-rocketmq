@@ -28,27 +28,28 @@ public class TransactionProducer {
     public static void main(String[] args) throws MQClientException, InterruptedException {
         TransactionCheckListener transactionCheckListener = new TransactionCheckListenerImpl();
         TransactionMQProducer producer = new TransactionMQProducer("please_rename_unique_group_name");
-        producer.setCheckThreadPoolMinSize(2);
-        producer.setCheckThreadPoolMaxSize(2);
+        producer.setNamesrvAddr("localhost:9876");
+        producer.setCheckThreadPoolMinSize(100);
+        producer.setCheckThreadPoolMaxSize(100);
         producer.setCheckRequestHoldMax(2000);
         producer.setTransactionCheckListener(transactionCheckListener);
         producer.start();
 
-        String[] tags = new String[] {"TagA", "TagB", "TagC", "TagD", "TagE"};
-        TransactionExecuterImpl tranExecuter = new TransactionExecuterImpl();
-        for (int i = 0; i < 100; i++) {
-            try {
-                Message msg =
-                    new Message("TopicTest", tags[i % tags.length], "KEY" + i,
-                        ("Hello RocketMQ " + i).getBytes(RemotingHelper.DEFAULT_CHARSET));
-                SendResult sendResult = producer.sendMessageInTransaction(msg, tranExecuter, null);
-                System.out.printf("%s%n", sendResult);
-
-                Thread.sleep(10);
-            } catch (MQClientException | UnsupportedEncodingException e) {
-                e.printStackTrace();
-            }
-        }
+//        String[] tags = new String[] {"TagA", "TagB", "TagC", "TagD", "TagE"};
+//        TransactionExecuterImpl tranExecuter = new TransactionExecuterImpl();
+//        for (int i = 0; i < 10000000; i++) {
+//            try {
+//                Message msg =
+//                    new Message("TopicTest", tags[i % tags.length], "KEY" + System.currentTimeMillis(),
+//                        ("Hello RocketMQ " + i).getBytes(RemotingHelper.DEFAULT_CHARSET));
+//                SendResult sendResult = producer.sendMessageInTransaction(msg, tranExecuter, null);
+//                System.out.printf("%s%n", sendResult);
+//
+//                Thread.sleep(100);
+//            } catch (MQClientException | UnsupportedEncodingException e) {
+//                e.printStackTrace();
+//            }
+//        }
 
         for (int i = 0; i < 100000; i++) {
             Thread.sleep(1000);
