@@ -290,72 +290,72 @@
     </appender>
 
     <logger name="RocketmqBroker" additivity="false">
-        <level value="DEBUG"/>
+        <level value="INFO"/>
         <appender-ref ref="RocketmqBrokerAppender"/>
     </logger>
 
     <logger name="RocketmqProtection" additivity="false">
-        <level value="DEBUG"/>
+        <level value="INFO"/>
         <appender-ref ref="RocketmqProtectionAppender"/>
     </logger>
 
     <logger name="RocketmqWaterMark" additivity="false">
-        <level value="DEBUG"/>
+        <level value="INFO"/>
         <appender-ref ref="RocketmqWaterMarkAppender"/>
     </logger>
 
     <logger name="RocketmqCommon" additivity="false">
-        <level value="DEBUG"/>
+        <level value="INFO"/>
         <appender-ref ref="RocketmqBrokerAppender"/>
     </logger>
 
     <logger name="RocketmqStore" additivity="false">
-        <level value="DEBUG"/>
+        <level value="INFO"/>
         <appender-ref ref="RocketmqStoreAppender"/>
     </logger>
 
     <logger name="RocketmqStoreError" additivity="false">
-        <level value="DEBUG"/>
+        <level value="INFO"/>
         <appender-ref ref="RocketmqStoreErrorAppender"/>
     </logger>
 
     <logger name="RocketmqTransaction" additivity="false">
-        <level value="DEBUG"/>
+        <level value="INFO"/>
         <appender-ref ref="RocketmqTransactionAppender"/>
     </logger>
 
     <logger name="RocketmqRebalanceLock" additivity="false">
-        <level value="DEBUG"/>
+        <level value="INFO"/>
         <appender-ref ref="RocketmqRebalanceLockAppender"/>
     </logger>
 
     <logger name="RocketmqRemoting" additivity="false">
-        <level value="DEBUG"/>
+        <level value="INFO"/>
         <appender-ref ref="RocketmqRemotingAppender"/>
     </logger>
 
     <logger name="RocketmqStats" additivity="false">
-        <level value="DEBUG"/>
+        <level value="INFO"/>
         <appender-ref ref="RocketmqStatsAppender"/>
     </logger>
 
     <logger name="RocketmqCommercial" additivity="false">
-        <level value="DEBUG"/>
+        <level value="INFO"/>
         <appender-ref ref="RocketmqCommercialAppender"/>
     </logger>
 
     <logger name="RocketmqFilter" additivity="false">
-        <level value="DEBUG"/>
+        <level value="INFO"/>
         <appender-ref ref="RocketmqFilterAppender"/>
     </logger>
 
     <logger name="RocketmqConsole" additivity="false">
-        <level value="DEBUG" />
+        <level value="INFO" />
         <appender-ref ref="STDOUT" />
     </logger>
 
     <root>
-        <level value="DEBUG"/>
+        <level value="INFO"/>
         <appender-ref ref="DefaultAppender"/>
     </root>
 </configuration>

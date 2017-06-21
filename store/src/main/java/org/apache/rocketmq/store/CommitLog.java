@@ -1350,7 +1350,6 @@ public class CommitLog {
             final long beginTimeMills = CommitLog.this.defaultMessageStore.now();
             // Write messages to the queue buffer
             byteBuffer.put(this.msgStoreItemMemory.array(), 0, msgLen);
-            cxyTestCode();
 
             AppendMessageResult result = new AppendMessageResult(AppendMessageStatus.PUT_OK, wroteOffset, msgLen, msgId,
                 msgInner.getStoreTimestamp(), queueOffset, CommitLog.this.defaultMessageStore.now() - beginTimeMills);
@@ -1371,14 +1370,6 @@ public class CommitLog {
             }
             return result;
         }
-
-		private void cxyTestCode() {
-			MessageExt msg = MessageDecoder.decode(ByteBuffer.wrap(this.msgStoreItemMemory.array()));
-//			if (msg.getSysFlag() == MessageSysFlag.TRANSACTION_PREPARED_TYPE) {
-				System.out.printf("append msg.msgId=%s, queueId=%d, queueOffset=%d, sysFlag=%d, msg=%s%n",
-						msg.getMsgId(), msg.getQueueId(), msg.getQueueOffset(), msg.getSysFlag(), msg);
-//			}
-		}
 
         public AppendMessageResult doAppend(final long fileFromOffset, final ByteBuffer byteBuffer, final int maxBlank,
             final MessageExtBatch messageExtBatch) {
