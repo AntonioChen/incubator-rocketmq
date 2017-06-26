@@ -1,3 +1,4 @@
+windowsÆô¶¯
 e:
 cd \workspace\RocketMQ\incubator-rocketmq\distribution\target\apache-rocketmq\bin
 mqnamesrv.cmd -c e:/workspace/RocketMQ/incubator-rocketmq/distribution/conf/namesrv.conf
@@ -10,3 +11,16 @@ mqbroker.cmd -c e:/workspace/RocketMQ/incubator-rocketmq/distribution/conf/broke
 e:
 cd \workspace\RocketMQ\incubator-rocketmq-externals\rocketmq-console\target\
 java -jar rocketmq-console-ng-1.0.0.jar -Drocketmq.namesrv.addr=127.0.0.1:9876
+
+
+linux±àÒë
+git clone https://github.com/AntonioChen/incubator-rocketmq.git incubator-rocketmq-fmrt
+cd incubator-rocketmq-fmrt
+git checkout origin/rocketmq-all-4.1.0-fmrt-release
+mvn -Prelease-all -DskipTests -Dcheckstyle.skip=true clean install -U
+cd ./distribution/target/apache-rocketmq/
+
+nohup sh bin/mqnamesrv -c conf/namesrv.conf > ns.log 2>&1 &
+nohup sh bin/mqbroker  -c conf/2m-2s-sync/broker-a.properties > bk.log 2>&1 &
+
+tail -200f ~/logs/rocketmqlogs/transaction.log
