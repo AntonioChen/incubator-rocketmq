@@ -225,7 +225,7 @@ public class DefaultMessageStore implements MessageStore {
         }
         this.reputMessageService.start();
         this.haService.start();
-        this.transactionStateService.start();
+//        this.transactionStateService.start();
 
         this.createTempFile();
         this.addScheduleTask();
@@ -1445,20 +1445,24 @@ public class DefaultMessageStore implements MessageStore {
                     case MessageSysFlag.TRANSACTION_NOT_TYPE:
                         break;
                     case MessageSysFlag.TRANSACTION_PREPARED_TYPE:
-                         DefaultMessageStore.this.getTransactionStateService().appendPreparedTransaction(//
-                                req.getCommitLogOffset(),//
-                                req.getMsgSize(),//
-                                (int) (req.getStoreTimestamp() / 1000),//
-                                req.getProducerGroup().hashCode());
+                    	if (DefaultMessageStore.this.getTransactionStateService().isRecoverd()) {
+                    		DefaultMessageStore.this.getTransactionStateService().appendPreparedTransaction(//
+	                                req.getCommitLogOffset(),//
+	                                req.getMsgSize(),//
+	                                (int) (req.getStoreTimestamp() / 1000),//
+	                                req.getProducerGroup().hashCode());
+                    	}
                         break;
                     case MessageSysFlag.TRANSACTION_COMMIT_TYPE:
                     case MessageSysFlag.TRANSACTION_ROLLBACK_TYPE:
-                        DefaultMessageStore.this.getTransactionStateService().updateTransactionState(//
-                                req.getTranStateTableOffset(),//
-                                req.getPreparedTransactionOffset(),//
-                                req.getProducerGroup().hashCode(),//
-                                tranType//
-                        );
+                    	if (DefaultMessageStore.this.getTransactionStateService().isRecoverd()) {
+                    		DefaultMessageStore.this.getTransactionStateService().updateTransactionState(//
+                    				req.getTranStateTableOffset(),//
+                    				req.getPreparedTransactionOffset(),//
+                    				req.getProducerGroup().hashCode(),//
+                    				tranType//
+                    				);
+                    	}
                         break;
                 }
             }
@@ -1487,8 +1491,11 @@ public class DefaultMessageStore implements MessageStore {
                 case MessageSysFlag.TRANSACTION_COMMIT_TYPE:
                 case MessageSysFlag.TRANSACTION_ROLLBACK_TYPE:{
                 	DispatchRequest nextReq = new DispatchRequest(req.getTopic(), req.getQueueId(), req.getCommitLogOffset(), 
-                			req.getMsgSize(), req.getPreparedTransactionOffset(), 
-                			req.getStoreTimestamp(), 0L, req.getKeys(), 
+                			req.getMsgSize(), 
+                			req.getPreparedTransactionOffset(),	//redoLog中，tagsCode表示Prepared消息的ClOffset
+                			req.getStoreTimestamp(), 
+                			req.getConsumeQueueOffset(), 		//
+                			req.getKeys(), 
                 			req.getUniqKey(), req.getSysFlag(), req.getTranStateTableOffset(), req.getPreparedTransactionOffset(), 
                 			req.getProducerGroup(), req.getPropertiesMap());
 					DefaultMessageStore.this.getTransactionStateService().getTranRedoLog()

@@ -65,6 +65,8 @@ public class TransactionStateService {
     private final Timer timer = new Timer("CheckTransactionMessageTimer", true);
 
     private MappedFileQueue tranStateTable;
+    
+    private boolean recoverd = false;	//启动后是否已恢复数据文件
 
 
     public TransactionStateService(final DefaultMessageStore defaultMessageStore) {
@@ -266,7 +268,7 @@ public class TransactionStateService {
                         }
                         // Commit/Rollback
                         else {
-                            preparedItemSet.remove(offsetMsg);
+                            preparedItemSet.remove(tagsCode);
                         }
                     }
 
@@ -297,6 +299,8 @@ public class TransactionStateService {
                 this.tranStateTableOffset.incrementAndGet();
             }
         }
+        
+        recoverd = true;
     }
 
     public boolean appendPreparedTransaction(//
@@ -419,6 +423,7 @@ public class TransactionStateService {
             this.tranStateTableOffset.set(this.tranStateTable.getMaxOffset() / TSStoreUnitSize);
             log.info("recover normal over, transaction state table max offset: {}",
                 this.tranStateTableOffset.get());
+            recoverd = true;
         }
     }
 
@@ -490,4 +495,14 @@ public class TransactionStateService {
     public ConsumeQueue getTranRedoLog() {
         return tranRedoLog;
     }
+
+
+	public boolean isRecoverd() {
+		return recoverd;
+	}
+
+
+	public void setRecoverd(boolean recoverd) {
+		this.recoverd = recoverd;
+	}
 }
