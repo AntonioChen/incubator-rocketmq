@@ -266,7 +266,7 @@ public class TransactionStateService {
                         }
                         // Commit/Rollback
                         else {
-                            preparedItemSet.remove(offsetMsg);
+                            preparedItemSet.remove(tagsCode);
                         }
                     }
 
