@@ -26,6 +26,7 @@ import java.util.ListIterator;
 import java.util.concurrent.CopyOnWriteArrayList;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.constant.LoggerName;
+import org.apache.rocketmq.remoting.common.RemotingUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -50,7 +51,11 @@ public class MappedFileQueue {
 
     public MappedFileQueue(final String storePath, int mappedFileSize,
         AllocateMappedFileService allocateMappedFileService) {
-        this.storePath = storePath;
+    	if (RemotingUtil.isWindowsPlatform() && storePath.contains("|")) {
+    		this.storePath = storePath.replace("|", "_");
+    	} else {
+    		this.storePath = storePath;
+    	}
         this.mappedFileSize = mappedFileSize;
         this.allocateMappedFileService = allocateMappedFileService;
     }
