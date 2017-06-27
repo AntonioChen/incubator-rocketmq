@@ -120,11 +120,11 @@ public class EndTransactionProcessor implements NettyRequestProcessor {
                 return response;
             }
 
-            if (msgExt.getQueueOffset() != requestHeader.getTranStateTableOffset()) {
-                response.setCode(ResponseCode.SYSTEM_ERROR);
-                response.setRemark("the transaction state table offset wrong");
-                return response;
-            }
+//            if (msgExt.getQueueOffset() != requestHeader.getTranStateTableOffset()) {
+//                response.setCode(ResponseCode.SYSTEM_ERROR);
+//                response.setRemark("the transaction state table offset wrong");
+//                return response;
+//            }
 
             if (msgExt.getCommitLogOffset() != requestHeader.getCommitLogOffset()) {
                 response.setCode(ResponseCode.SYSTEM_ERROR);
