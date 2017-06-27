@@ -183,7 +183,7 @@ public class DefaultMessageStore implements MessageStore {
             // load Consume Queue
             result = result && this.loadConsumeQueue();
 
-            result = result && this.transactionStateService.load();            
+            result = result && this.transactionStateService.load(lastExitOK);            
             if (result) {
                 this.storeCheckpoint =
                     new StoreCheckpoint(StorePathConfigHelper.getStoreCheckpoint(this.messageStoreConfig.getStorePathRootDir()));
@@ -225,7 +225,7 @@ public class DefaultMessageStore implements MessageStore {
         }
         this.reputMessageService.start();
         this.haService.start();
-//        this.transactionStateService.start();
+        this.transactionStateService.start();
 
         this.createTempFile();
         this.addScheduleTask();
@@ -1494,7 +1494,7 @@ public class DefaultMessageStore implements MessageStore {
                 			req.getMsgSize(), 
                 			req.getPreparedTransactionOffset(),	//redoLog中，tagsCode表示Prepared消息的ClOffset
                 			req.getStoreTimestamp(), 
-                			req.getConsumeQueueOffset(), 		//
+                			0, 		//
                 			req.getKeys(), 
                 			req.getUniqKey(), req.getSysFlag(), req.getTranStateTableOffset(), req.getPreparedTransactionOffset(), 
                 			req.getProducerGroup(), req.getPropertiesMap());

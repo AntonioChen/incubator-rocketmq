@@ -17,11 +17,15 @@
 package org.apache.rocketmq.store.transaction;
 
 import java.nio.ByteBuffer;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.TreeSet;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 
 import org.slf4j.Logger;
@@ -44,7 +48,7 @@ import org.apache.rocketmq.store.config.BrokerRole;
  * tsOffset - Transaction State Table Offset
  */
 public class TransactionStateService {
-    public static final int TSStoreUnitSize = 24;
+	public static final int TSStoreUnitSize = 24;
 
     public static final String TRANSACTION_REDOLOG_TOPIC = "TRANSACTION_REDOLOG_TOPIC_XXXX";
     public static final int TRANSACTION_REDOLOG_TOPIC_QUEUEID = 0;
@@ -63,11 +67,10 @@ public class TransactionStateService {
     private final AtomicLong tranStateTableOffset = new AtomicLong(0);
 
     private final Timer timer = new Timer("CheckTransactionMessageTimer", true);
-
+    private final Map<MappedFile, Boolean> timerExistMap = new ConcurrentHashMap<MappedFile, Boolean>();
     private MappedFileQueue tranStateTable;
     
     private boolean recoverd = false;	//启动后是否已恢复数据文件
-
 
     public TransactionStateService(final DefaultMessageStore defaultMessageStore) {
         this.defaultMessageStore = defaultMessageStore;
@@ -84,9 +87,15 @@ public class TransactionStateService {
     }
 
 
-    public boolean load() {
+    public boolean load(final boolean lastExitOK) {
         boolean result = this.tranRedoLog.load();
         result = result && this.tranStateTable.load();
+        
+        if (!lastExitOK) {
+        	//若非正常退出，则清空redoLog和tranStateTable
+        	this.tranRedoLog.destroy();
+        	this.tranStateTable.destroy();
+        }
 
         return result;
     }
@@ -104,116 +113,128 @@ public class TransactionStateService {
 
 
     private void addTimerTask(final MappedFile mf) {
-        this.timer.scheduleAtFixedRate(new TimerTask() {
-            private final MappedFile mappedFile = mf;
-            private final TransactionCheckExecuter transactionCheckExecuter =
-                    TransactionStateService.this.defaultMessageStore.getTransactionCheckExecuter();
-            private final long checkTransactionMessageAtleastInterval =
-                    TransactionStateService.this.defaultMessageStore.getMessageStoreConfig()
-                        .getCheckTransactionMessageAtleastInterval();
-            private final boolean slave = TransactionStateService.this.defaultMessageStore
-                .getMessageStoreConfig().getBrokerRole() == BrokerRole.SLAVE;
-
-
-            @Override
-            public void run() {
-                if (slave)
-                    return;
-
-                if (!TransactionStateService.this.defaultMessageStore.getMessageStoreConfig()
-                    .isCheckTransactionMessageEnable()) {
-                    return;
-                }
-
-                try {
-
-                    SelectMappedBufferResult selectMappedBufferResult = mappedFile.selectMappedBuffer(0);
-                    if (selectMappedBufferResult != null) {
-                        long preparedMessageCountInThisMapedFile = 0;
-                        int i = 0;
-                        try {
-
-                            for (; i < selectMappedBufferResult.getSize(); i += TSStoreUnitSize) {
-                                selectMappedBufferResult.getByteBuffer().position(i);
-
-                                // Commit Log Offset
-                                long clOffset = selectMappedBufferResult.getByteBuffer().getLong();
-                                // Message Size
-                                int msgSize = selectMappedBufferResult.getByteBuffer().getInt();
-                                // Timestamp
-                                int timestamp = selectMappedBufferResult.getByteBuffer().getInt();
-                                // Producer Group Hashcode
-                                int groupHashCode = selectMappedBufferResult.getByteBuffer().getInt();
-                                // Transaction State
-                                int tranType = selectMappedBufferResult.getByteBuffer().getInt();
-                                if (tranType != MessageSysFlag.TRANSACTION_PREPARED_TYPE) {
-                                    continue;
-                                }
-
-                                long timestampLong = timestamp * 1000;
-                                long diff = System.currentTimeMillis() - timestampLong;
-                                if (diff < checkTransactionMessageAtleastInterval) {
-                                    break;
-                                }
-
-                                preparedMessageCountInThisMapedFile++;
-
-                                try {
-                                    this.transactionCheckExecuter.gotoCheck(//
-                                        groupHashCode,//
-                                        getTranStateOffset(i),//
-                                        clOffset,//
-                                        msgSize);
-                                }
-                                catch (Exception e) {
-                                    tranlog.warn("gotoCheck Exception", e);
-                                }
-                            }
-
-                            if (0 == preparedMessageCountInThisMapedFile //
-                                    && i == mappedFile.getFileSize()) {
-                                tranlog
-                                    .info(
-                                        "remove the transaction timer task, because no prepared message in this mapedfile[{}]",
-                                        mappedFile.getFileName());
-                                this.cancel();
-                            }
-                        }
-                        finally {
-                            selectMappedBufferResult.release();
-                        }
-
-                        tranlog
-                            .info(
-                                "the transaction timer task execute over in this period, {} Prepared Message: {} Check Progress: {}/{}",
-                                mappedFile.getFileName(),//
-                                preparedMessageCountInThisMapedFile,//
-                                i / TSStoreUnitSize,//
-                                mappedFile.getFileSize() / TSStoreUnitSize//
-                            );
-                    }
-                    else if (mappedFile.isFull()) {
-                        tranlog.info("the mapedfile[{}] maybe deleted, cancel check transaction timer task",
-                            mappedFile.getFileName());
-                        this.cancel();
-                        return;
-                    }
-                }
-                catch (Exception e) {
-                    log.error("check transaction timer task Exception", e);
-                }
-            }
-
-
-            private long getTranStateOffset(final long currentIndex) {
-                long offset =
-                        (this.mappedFile.getFileFromOffset() + currentIndex)
-                                / TransactionStateService.TSStoreUnitSize;
-                return offset;
-            }
-        }, 1000 * 60, this.defaultMessageStore.getMessageStoreConfig()
+    	Boolean exist = timerExistMap.get(mf);
+    	if (exist != null && exist == true) {
+    		return;
+    	}
+    	
+        this.timerExistMap.put(mf, true);
+        this.timer.scheduleAtFixedRate(new CheckTimerTask(mf), 1000 * 60, this.defaultMessageStore.getMessageStoreConfig()
             .getCheckTransactionMessageTimerInterval());
     }
+    
+    private final class CheckTimerTask extends TimerTask {
+		private final MappedFile mappedFile;
+		private final TransactionCheckExecuter transactionCheckExecuter =
+		        TransactionStateService.this.defaultMessageStore.getTransactionCheckExecuter();
+		private final long checkTransactionMessageAtleastInterval =
+		        TransactionStateService.this.defaultMessageStore.getMessageStoreConfig()
+		            .getCheckTransactionMessageAtleastInterval();
+		private final boolean slave = TransactionStateService.this.defaultMessageStore
+		    .getMessageStoreConfig().getBrokerRole() == BrokerRole.SLAVE;
+
+		private CheckTimerTask(MappedFile mf) {
+			mappedFile = mf;
+		}
+
+		@Override
+		public void run() {
+		    if (slave)
+		        return;
+
+		    if (!TransactionStateService.this.defaultMessageStore.getMessageStoreConfig()
+		        .isCheckTransactionMessageEnable()) {
+		        return;
+		    }
+
+		    try {
+
+		        SelectMappedBufferResult selectMappedBufferResult = mappedFile.selectMappedBuffer(0);
+		        if (selectMappedBufferResult != null) {
+		            long preparedMessageCountInThisMapedFile = 0;
+		            int i = 0;
+		            try {
+
+		                for (; i < selectMappedBufferResult.getSize(); i += TSStoreUnitSize) {
+		                    selectMappedBufferResult.getByteBuffer().position(i);
+
+		                    // Commit Log Offset
+		                    long clOffset = selectMappedBufferResult.getByteBuffer().getLong();
+		                    // Message Size
+		                    int msgSize = selectMappedBufferResult.getByteBuffer().getInt();
+		                    // Timestamp
+		                    int timestamp = selectMappedBufferResult.getByteBuffer().getInt();
+		                    // Producer Group Hashcode
+		                    int groupHashCode = selectMappedBufferResult.getByteBuffer().getInt();
+		                    // Transaction State
+		                    int tranType = selectMappedBufferResult.getByteBuffer().getInt();
+		                    if (tranType != MessageSysFlag.TRANSACTION_PREPARED_TYPE) {
+		                        continue;
+		                    }
+
+		                    long timestampLong = timestamp * 1000;
+		                    long diff = System.currentTimeMillis() - timestampLong;
+		                    if (diff < checkTransactionMessageAtleastInterval) {
+		                        break;
+		                    }
+
+		                    preparedMessageCountInThisMapedFile++;
+
+		                    try {
+		                        this.transactionCheckExecuter.gotoCheck(//
+		                            groupHashCode,//
+		                            getTranStateOffset(i),//
+		                            clOffset,//
+		                            msgSize);
+		                    }
+		                    catch (Exception e) {
+		                        tranlog.warn("gotoCheck Exception", e);
+		                    }
+		                }
+
+		                if (0 == preparedMessageCountInThisMapedFile //
+		                        && i == mappedFile.getFileSize()) {
+		                    tranlog
+		                        .info(
+		                            "remove the transaction timer task, because no prepared message in this mapedfile[{}]",
+		                            mappedFile.getFileName());
+		                    this.cancel();
+		                    timerExistMap.remove(mappedFile);
+		                }
+		            }
+		            finally {
+		                selectMappedBufferResult.release();
+		            }
+
+		            tranlog
+		                .info(
+		                    "the transaction timer task execute over in this period, {} Prepared Message: {} Check Progress: {}/{}",
+		                    mappedFile.getFileName(),//
+		                    preparedMessageCountInThisMapedFile,//
+		                    i / TSStoreUnitSize,//
+		                    mappedFile.getFileSize() / TSStoreUnitSize//
+		                );
+		        }
+		        else if (mappedFile.isFull()) {
+		            tranlog.info("the mapedfile[{}] maybe deleted, cancel check transaction timer task",
+		                mappedFile.getFileName());
+		            this.cancel();
+                    timerExistMap.remove(mappedFile);
+		            return;
+		        }
+		    }
+		    catch (Exception e) {
+		        log.error("check transaction timer task Exception", e);
+		    }
+		}
+
+		private long getTranStateOffset(final long currentIndex) {
+		    long offset =
+		            (this.mappedFile.getFileFromOffset() + currentIndex)
+		                    / TransactionStateService.TSStoreUnitSize;
+		    return offset;
+		}
+	}
 
 
     public void shutdown() {
@@ -233,7 +254,6 @@ public class TransactionStateService {
         }
         else {
             this.tranStateTable.destroy();
-
             this.recreateStateTable();
         }
     }
@@ -270,6 +290,8 @@ public class TransactionStateService {
                         else {
                             preparedItemSet.remove(tagsCode);
                         }
+                        
+                        System.out.println(preparedItemSet);
                     }
 
                     processOffset += i;
@@ -318,7 +340,7 @@ public class TransactionStateService {
             return false;
         }
 
-        if (0 == mappedFile.getWrotePosition()) {
+        if (recoverd && 0 == mappedFile.getWrotePosition()) {
             this.addTimerTask(mappedFile);
         }
 
