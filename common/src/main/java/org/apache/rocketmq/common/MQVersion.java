@@ -18,7 +18,7 @@ package org.apache.rocketmq.common;
 
 public class MQVersion {
 
-    public static final int CURRENT_VERSION = Version.V4_1_0_SNAPSHOT.ordinal();
+    public static final int CURRENT_VERSION = Version.V4_1_0_1_SNAPSHOT.ordinal();
 
     public static String getVersionDesc(int value) {
         int length = Version.values().length;
@@ -372,6 +372,37 @@ public class MQVersion {
 
         V4_1_0_SNAPSHOT,
         V4_1_0,
+        V4_1_0_1_SNAPSHOT,
+        V4_1_0_2_SNAPSHOT,
+        V4_1_0_3_SNAPSHOT,
+        V4_1_0_4_SNAPSHOT,
+        V4_1_0_5_SNAPSHOT,
+        V4_1_0_6_SNAPSHOT,
+        V4_1_0_7_SNAPSHOT,
+        V4_1_0_8_SNAPSHOT,
+        V4_1_0_9_SNAPSHOT,
+        V4_1_0_10_SNAPSHOT,
+        V4_1_0_11_SNAPSHOT,
+        V4_1_0_12_SNAPSHOT,
+        V4_1_0_13_SNAPSHOT,
+        V4_1_0_14_SNAPSHOT,
+        V4_1_0_15_SNAPSHOT,
+        V4_1_0_16_SNAPSHOT,
+        V4_1_0_17_SNAPSHOT,
+        V4_1_0_18_SNAPSHOT,
+        V4_1_0_19_SNAPSHOT,
+        V4_1_0_20_SNAPSHOT,
+        V4_1_0_21_SNAPSHOT,
+        V4_1_0_22_SNAPSHOT,
+        V4_1_0_23_SNAPSHOT,
+        V4_1_0_24_SNAPSHOT,
+        V4_1_0_25_SNAPSHOT,
+        V4_1_0_26_SNAPSHOT,
+        V4_1_0_27_SNAPSHOT,
+        V4_1_0_28_SNAPSHOT,
+        V4_1_0_29_SNAPSHOT,
+        V4_1_0_30_SNAPSHOT,
+        V4_1_0_31_SNAPSHOT,
 
         V4_1_1_SNAPSHOT,
         V4_1_1,
