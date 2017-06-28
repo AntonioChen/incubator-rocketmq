@@ -19,7 +19,14 @@ package org.apache.rocketmq.store.config;
 import java.io.File;
 
 public class StorePathConfigHelper {
+	public static String getStorePathRootDir() {
+		return System.getProperty("user.home") + File.separator + "store";
+	}
 
+	public static String getStorePathCommitLog(final String rootDir) {
+		return rootDir + File.separator + "commitlog";
+	}
+	
     public static String getStorePathConsumeQueue(final String rootDir) {
         return rootDir + File.separator + "consumequeue";
     }
@@ -51,5 +58,13 @@ public class StorePathConfigHelper {
     public static String getTranRedoLogStorePath(final String rootDir) {
         return rootDir + File.separator + "transaction" + File.separator + "redolog";
     }
+
+	public static String getStorePathTranStateTable(final String rootDir) {
+		return rootDir + File.separator + "transaction" + File.separator + "statetable";
+	}
+
+	public static String getStorePathTranRedoLog(final String rootDir) {
+		return rootDir + File.separator + "transaction" + File.separator + "redolog";
+	}
 
 }

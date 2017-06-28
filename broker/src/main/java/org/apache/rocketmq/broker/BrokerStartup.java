@@ -39,6 +39,7 @@ import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.srvutil.ServerUtil;
 import org.apache.rocketmq.store.config.BrokerRole;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
+import org.apache.rocketmq.store.config.StorePathConfigHelper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -61,6 +62,9 @@ public class BrokerStartup {
             if (null != controller.getBrokerConfig().getNamesrvAddr()) {
                 tip += " and name server is " + controller.getBrokerConfig().getNamesrvAddr();
             }
+            
+            tip += " and StorePathRootDir=" + StorePathConfigHelper.getStorePathRootDir();
+            tip += " and rocketmqHome=" + controller.getBrokerConfig().getRocketmqHome();
 
             log.info(tip);
             System.out.println(tip);
@@ -93,12 +97,17 @@ public class BrokerStartup {
                 System.exit(-1);
             }
 
+            if (commandLine.hasOption('u')) {
+            	String userHome = commandLine.getOptionValue('u');
+            	System.setProperty("user.home", userHome);
+            }
+
             final BrokerConfig brokerConfig = new BrokerConfig();
             final NettyServerConfig nettyServerConfig = new NettyServerConfig();
             final NettyClientConfig nettyClientConfig = new NettyClientConfig();
             nettyServerConfig.setListenPort(10911);
             final MessageStoreConfig messageStoreConfig = new MessageStoreConfig();
-
+            
             if (BrokerRole.SLAVE == messageStoreConfig.getBrokerRole()) {
                 int ratio = messageStoreConfig.getAccessMessageInMemoryMaxRatio() - 10;
                 messageStoreConfig.setAccessMessageInMemoryMaxRatio(ratio);
@@ -256,6 +265,10 @@ public class BrokerStartup {
         opt.setRequired(false);
         options.addOption(opt);
 
+        opt = new Option("u", "set user.home", true, "set user.home");
+        opt.setRequired(false);
+        options.addOption(opt);
+        
         return options;
     }
 }
