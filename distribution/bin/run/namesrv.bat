@@ -1,0 +1,2 @@
+cd ../
+mqnamesrv.cmd -r ../

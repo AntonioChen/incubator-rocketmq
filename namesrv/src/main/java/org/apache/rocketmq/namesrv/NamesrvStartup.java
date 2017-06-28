@@ -59,14 +59,14 @@ public class NamesrvStartup {
         }
 
         try {
-            //PackageConflictDetect.detectFastjson();
-
             Options options = ServerUtil.buildCommandlineOptions(new Options());
             commandLine = ServerUtil.parseCmdLine("mqnamesrv", args, buildCommandlineOptions(options), new PosixParser());
             if (null == commandLine) {
                 System.exit(-1);
                 return null;
             }
+            
+            MixAll.processCommonCommandLine(commandLine);
 
             final NamesrvConfig namesrvConfig = new NamesrvConfig();
             final NettyServerConfig nettyServerConfig = new NettyServerConfig();
@@ -153,6 +153,8 @@ public class NamesrvStartup {
         opt.setRequired(false);
         options.addOption(opt);
 
+        MixAll.addCommonCommandLineOptions(options);
+        
         return options;
     }
 }

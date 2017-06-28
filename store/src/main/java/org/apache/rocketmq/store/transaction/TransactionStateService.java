@@ -290,8 +290,6 @@ public class TransactionStateService {
                         else {
                             preparedItemSet.remove(tagsCode);
                         }
-                        
-                        System.out.println(preparedItemSet);
                     }
 
                     processOffset += i;

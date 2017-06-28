@@ -42,6 +42,10 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
+
+import org.apache.commons.cli.CommandLine;
+import org.apache.commons.cli.Option;
+import org.apache.commons.cli.Options;
 import org.apache.rocketmq.common.annotation.ImportantField;
 import org.apache.rocketmq.common.help.FAQUrl;
 import org.slf4j.Logger;
@@ -459,4 +463,36 @@ public class MixAll {
         }
         return result;
     }
+
+	public static void addCommonCommandLineOptions(final Options options) {
+		Option opt;
+		opt = new Option("u", "set user.home", true, "set user.home");
+	    opt.setRequired(false);
+	    options.addOption(opt);
+	    
+	    opt = new Option("r", "set rocketmq.home.dir", true, "set rocketmq.home.dir");
+	    opt.setRequired(false);
+	    options.addOption(opt);
+	    
+	    opt = new Option("n", "set namesrvAddr", true, "set namesrvAddr");
+	    opt.setRequired(false);
+	    options.addOption(opt);
+	}
+    
+	public static void processCommonCommandLine(CommandLine commandLine) {
+		if (commandLine.hasOption('u')) {
+			String userHome = commandLine.getOptionValue('u');
+			System.setProperty("user.home", userHome);
+		}
+		
+		if (commandLine.hasOption('r')) {
+			String rocketMQHome = commandLine.getOptionValue('r');
+			System.setProperty(ROCKETMQ_HOME_PROPERTY, rocketMQHome);
+		}
+		
+		if (commandLine.hasOption('n')) {
+			String namesrvAddr = commandLine.getOptionValue('n');
+			System.setProperty(NAMESRV_ADDR_PROPERTY, namesrvAddr);
+		}
+	}
 }

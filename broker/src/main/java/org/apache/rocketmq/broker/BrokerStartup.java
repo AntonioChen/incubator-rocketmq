@@ -89,18 +89,14 @@ public class BrokerStartup {
         }
 
         try {
-            //PackageConflictDetect.detectFastjson();
             Options options = ServerUtil.buildCommandlineOptions(new Options());
-            commandLine = ServerUtil.parseCmdLine("mqbroker", args, buildCommandlineOptions(options),
-                new PosixParser());
+            commandLine = ServerUtil.parseCmdLine("mqbroker", args, buildCommandlineOptions(options), new PosixParser());
             if (null == commandLine) {
                 System.exit(-1);
+                return null;
             }
 
-            if (commandLine.hasOption('u')) {
-            	String userHome = commandLine.getOptionValue('u');
-            	System.setProperty("user.home", userHome);
-            }
+            MixAll.processCommonCommandLine(commandLine);
 
             final BrokerConfig brokerConfig = new BrokerConfig();
             final NettyServerConfig nettyServerConfig = new NettyServerConfig();
@@ -242,7 +238,7 @@ public class BrokerStartup {
         return null;
     }
 
-    private static void properties2SystemEnv(Properties properties) {
+	private static void properties2SystemEnv(Properties properties) {
         if (properties == null) {
             return;
         }
@@ -265,9 +261,7 @@ public class BrokerStartup {
         opt.setRequired(false);
         options.addOption(opt);
 
-        opt = new Option("u", "set user.home", true, "set user.home");
-        opt.setRequired(false);
-        options.addOption(opt);
+        MixAll.addCommonCommandLineOptions(options);
         
         return options;
     }
