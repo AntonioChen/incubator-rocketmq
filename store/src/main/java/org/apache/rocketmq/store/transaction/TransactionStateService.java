@@ -121,6 +121,7 @@ public class TransactionStateService {
         this.timerExistMap.put(mf, true);
         this.timer.scheduleAtFixedRate(new CheckTimerTask(mf), 1000 * 60, this.defaultMessageStore.getMessageStoreConfig()
             .getCheckTransactionMessageTimerInterval());
+        tranlog.info("start check timer task. mappedFile={}", mf.getFileName());
     }
     
     private final class CheckTimerTask extends TimerTask {
@@ -312,7 +313,6 @@ public class TransactionStateService {
 
             MessageExt msgExt = this.defaultMessageStore.lookMessageByOffset(offset);
             if (msgExt != null) {
-
                 this.appendPreparedTransaction(msgExt.getCommitLogOffset(), msgExt.getStoreSize(),
                     (int) (msgExt.getStoreTimestamp() / 1000),
                     msgExt.getProperty(MessageConst.PROPERTY_PRODUCER_GROUP).hashCode());
@@ -444,6 +444,8 @@ public class TransactionStateService {
             log.info("recover normal over, transaction state table max offset: {}",
                 this.tranStateTableOffset.get());
             recoverd = true;
+        } else {
+        	recoverd = true;
         }
     }
 

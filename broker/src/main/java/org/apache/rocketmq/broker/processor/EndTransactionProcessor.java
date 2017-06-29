@@ -54,7 +54,7 @@ public class EndTransactionProcessor implements NettyRequestProcessor {
         if (requestHeader.getFromTransactionCheck()) {
             switch (requestHeader.getCommitOrRollback()) {
                 case MessageSysFlag.TRANSACTION_NOT_TYPE: {
-                    LOGGER.warn("check producer[{}] transaction state, but it's pending status."
+                    LOGGER.debug("check producer[{}] transaction state, but it's pending status."
                             + "RequestHeader: {} Remark: {}",
                         RemotingHelper.parseChannelRemoteAddr(ctx.channel()),
                         requestHeader.toString(),
@@ -63,7 +63,7 @@ public class EndTransactionProcessor implements NettyRequestProcessor {
                 }
 
                 case MessageSysFlag.TRANSACTION_COMMIT_TYPE: {
-                    LOGGER.warn("check producer[{}] transaction state, the producer commit the message."
+                    LOGGER.debug("check producer[{}] transaction state, the producer commit the message."
                             + "RequestHeader: {} Remark: {}",
                         RemotingHelper.parseChannelRemoteAddr(ctx.channel()),
                         requestHeader.toString(),
@@ -73,7 +73,7 @@ public class EndTransactionProcessor implements NettyRequestProcessor {
                 }
 
                 case MessageSysFlag.TRANSACTION_ROLLBACK_TYPE: {
-                    LOGGER.warn("check producer[{}] transaction state, the producer rollback the message."
+                    LOGGER.debug("check producer[{}] transaction state, the producer rollback the message."
                             + "RequestHeader: {} Remark: {}",
                         RemotingHelper.parseChannelRemoteAddr(ctx.channel()),
                         requestHeader.toString(),
@@ -86,7 +86,7 @@ public class EndTransactionProcessor implements NettyRequestProcessor {
         } else {
             switch (requestHeader.getCommitOrRollback()) {
                 case MessageSysFlag.TRANSACTION_NOT_TYPE: {
-                    LOGGER.warn("the producer[{}] end transaction in sending message,  and it's pending status."
+                    LOGGER.debug("the producer[{}] end transaction in sending message,  and it's pending status."
                             + "RequestHeader: {} Remark: {}",
                         RemotingHelper.parseChannelRemoteAddr(ctx.channel()),
                         requestHeader.toString(),
@@ -99,7 +99,7 @@ public class EndTransactionProcessor implements NettyRequestProcessor {
                 }
 
                 case MessageSysFlag.TRANSACTION_ROLLBACK_TYPE: {
-                    LOGGER.warn("the producer[{}] end transaction in sending message, rollback the message."
+                    LOGGER.debug("the producer[{}] end transaction in sending message, rollback the message."
                             + "RequestHeader: {} Remark: {}",
                         RemotingHelper.parseChannelRemoteAddr(ctx.channel()),
                         requestHeader.toString(),
