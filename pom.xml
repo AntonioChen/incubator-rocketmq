@@ -610,4 +610,18 @@
             </dependency>
         </dependencies>
     </dependencyManagement>
+    
+	<!-- 配置部署的远程仓库 -->
+	<distributionManagement>
+		<repository>
+			<id>releases</id>
+			<name>nexus releases</name>
+			<url>http://172.41.30.15:8081/nexus/content/repositories/releases</url>
+		</repository>
+		<snapshotRepository>
+			<id>snapshots</id>
+			<name>nexus snapshots</name>
+			<url>http://172.41.30.15:8081/nexus/content/repositories/snapshots/</url>
+		</snapshotRepository>
+	</distributionManagement>
 </project>
