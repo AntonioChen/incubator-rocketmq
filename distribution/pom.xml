@@ -79,7 +79,7 @@
                         </executions>
                     </plugin>
                 </plugins>
-                <finalName>apache-rocketmq</finalName>
+                <finalName>apache-rocketmq-${project.version}</finalName>
             </build>
         </profile>
 
