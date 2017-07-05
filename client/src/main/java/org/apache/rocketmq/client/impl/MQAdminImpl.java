@@ -46,6 +46,7 @@ import org.apache.rocketmq.common.protocol.header.QueryMessageRequestHeader;
 import org.apache.rocketmq.common.protocol.header.QueryMessageResponseHeader;
 import org.apache.rocketmq.common.protocol.route.BrokerData;
 import org.apache.rocketmq.common.protocol.route.TopicRouteData;
+import org.apache.rocketmq.common.sysflag.MessageSysFlag;
 import org.apache.rocketmq.remoting.InvokeCallback;
 import org.apache.rocketmq.remoting.common.RemotingUtil;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
@@ -260,7 +261,7 @@ public class MQAdminImpl {
     public MessageExt queryMessageByUniqKey(String topic, String uniqKey) throws InterruptedException, MQClientException {
 
         QueryResult qr = this.queryMessage(topic, uniqKey, 32,
-            MessageClientIDSetter.getNearlyTimeFromID(uniqKey).getTime() - 1000, Long.MAX_VALUE, true);
+            MessageClientIDSetter.getNearlyTimeFromID(uniqKey).getTime() - 1000 * 60 * 60, Long.MAX_VALUE, true);
         if (qr != null && qr.getMessageList() != null && qr.getMessageList().size() > 0) {
             return qr.getMessageList().get(0);
         } else {
@@ -363,17 +364,15 @@ public class MQAdminImpl {
                     for (MessageExt msgExt : qr.getMessageList()) {
                         if (isUniqKey) {
                             if (msgExt.getMsgId().equals(key)) {
-
                                 if (messageList.size() > 0) {
-
-                                    if (messageList.get(0).getStoreTimestamp() > msgExt.getStoreTimestamp()) {
-
+                                    if (messageList.get(0).getSysFlag() == MessageSysFlag.TRANSACTION_PREPARED_TYPE && msgExt.getSysFlag() != MessageSysFlag.TRANSACTION_PREPARED_TYPE) {
+                                        messageList.clear();
+                                        messageList.add(msgExt);
+                                    } else if (messageList.get(0).getStoreTimestamp() > msgExt.getStoreTimestamp()) {
                                         messageList.clear();
                                         messageList.add(msgExt);
                                     }
-
                                 } else {
-
                                     messageList.add(msgExt);
                                 }
                             } else {
