@@ -13,7 +13,7 @@ mvn -Prelease-all -DskipTests -Dcheckstyle.skip=true clean install -U
 cd ./distribution/target/
 
 
-
+linux启动
 nohup sh bin/mqnamesrv -c /home/dev/conf/namesrv.conf > ns.log 2>&1 &
 nohup sh bin/mqbroker  -c /home/dev/conf/2m-4s-sync/broker-a.properties -n 172.41.30.23:9876 > bk.log 2>&1 &
 nohup sh bin/mqbroker  -c /home/dev/conf/2m-4s-sync/broker-a-s1.properties -n 172.41.30.23:9876 > bk.log 2>&1 &
@@ -37,3 +37,14 @@ nohup java -jar rocketmq-console-ng-*SNAPSHOT.jar --server.port=10987 > console.
 
 25
 nohup sh bin/mqbroker  -c /home/mq/conf/2m-4s-sync/broker-a.properties -n 172.41.30.25:9876 -u /root > bk_slave.log 2>&1 &
+
+
+
+eclipse环境下
+启动broker
+Main class : org.apache.rocketmq.broker.BrokerStartup
+program arguments : -c e:\workspace\RocketMQ\incubator-rocketmq\distribution\conf\2m-4s-sync\broker-a.properties -u e:\temp\prod.broker-b.store20181205\ -r e:\workspace\RocketMQ\incubator-rocketmq\distribution\ -n 172.41.16.8:9876
+
+编译
+-Prelease-all -DskipTests -Dcheckstyle.skip=true clean install -U
+deploy -e -DskipTests -Dcheckstyle.skip=true

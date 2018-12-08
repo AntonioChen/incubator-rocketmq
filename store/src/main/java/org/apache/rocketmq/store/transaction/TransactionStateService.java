@@ -147,12 +147,16 @@ public class TransactionStateService {
 		        .isCheckTransactionMessageEnable()) {
 		        return;
 		    }
+		    
+		    
 
 		    try {
 
 		        SelectMappedBufferResult selectMappedBufferResult = mappedFile.selectMappedBuffer(0);
 		        if (selectMappedBufferResult != null) {
+		            long minPhyOffset = TransactionStateService.this.defaultMessageStore.getMinPhyOffset();
 		            long preparedMessageCountInThisMapedFile = 0;
+		            long skipPreparedMessageCheckCountInThisMapedFile = 0;
 		            int i = 0;
 		            try {
 
@@ -170,6 +174,11 @@ public class TransactionStateService {
 		                    // Transaction State
 		                    int tranType = selectMappedBufferResult.getByteBuffer().getInt();
 		                    if (tranType != MessageSysFlag.TRANSACTION_PREPARED_TYPE) {
+		                        continue;
+		                    }
+		                    
+		                    if (clOffset < minPhyOffset) {
+		                        skipPreparedMessageCheckCountInThisMapedFile++;
 		                        continue;
 		                    }
 
@@ -209,9 +218,10 @@ public class TransactionStateService {
 
 		            tranlog
 		                .info(
-		                    "the transaction timer task execute over in this period, {} Prepared Message: {} Check Progress: {}/{}",
+		                    "the transaction timer task execute over in this period, {} Prepared Message: {} Skip Prepared Message: {} Check Progress: {}/{}",
 		                    mappedFile.getFileName(),//
 		                    preparedMessageCountInThisMapedFile,//
+		                    skipPreparedMessageCheckCountInThisMapedFile,
 		                    i / TSStoreUnitSize,//
 		                    mappedFile.getFileSize() / TSStoreUnitSize//
 		                );
@@ -267,6 +277,7 @@ public class TransactionStateService {
         final TreeSet<Long> preparedItemSet = new TreeSet<Long>();
 
         final long minOffset = this.tranRedoLog.getMinOffsetInQueue();
+        //
         long processOffset = minOffset;
         while (true) {
             SelectMappedBufferResult bufferConsumeQueue = this.tranRedoLog.getIndexBuffer(processOffset);
@@ -277,7 +288,7 @@ public class TransactionStateService {
                         long offsetMsg = bufferConsumeQueue.getByteBuffer().getLong();
                         int sizeMsg = bufferConsumeQueue.getByteBuffer().getInt();
                         long tagsCode = bufferConsumeQueue.getByteBuffer().getLong();
-
+                        
                         //跳过空白的CQ记录
                         if (offsetMsg == 0L && sizeMsg == 0L && tagsCode == 0L) {
                         	continue;
@@ -293,7 +304,7 @@ public class TransactionStateService {
                         }
                     }
 
-                    processOffset += i;
+                    processOffset += i/ConsumeQueue.CQ_STORE_UNIT_SIZE;
                 }
                 finally {
                     bufferConsumeQueue.release();
